@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -223,11 +224,10 @@ func (hsm *hostStateMachine) checkInitiateDelete() bool {
 	default:
 		hsm.NextState = metal3v1alpha1.StateDeleting
 	case metal3v1alpha1.StateProvisioning, metal3v1alpha1.StateProvisioned:
-		if len(hsm.Host.Finalizers) > 1 {
-			// Allow other finalizers to run before changing state
-			return false
-		}
 		if hsm.Host.OperationalStatus() == metal3v1alpha1.OperationalStatusDetached {
+			if delayDeleteForDetachedHost(hsm.Host) {
+				return false
+			}
 			hsm.NextState = metal3v1alpha1.StateDeleting
 		} else {
 			hsm.NextState = metal3v1alpha1.StateDeprovisioning
@@ -251,6 +251,21 @@ func hasDetachedAnnotation(host *metal3v1alpha1.BareMetalHost) bool {
 		}
 	}
 	return false
+}
+
+func delayDeleteForDetachedHost(host *metal3v1alpha1.BareMetalHost) bool {
+	annotations := host.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	args := metal3v1alpha1.DetachedAnnotationArguments{}
+	if val, ok := annotations[metal3v1alpha1.DetachedAnnotation]; ok {
+		if err := json.Unmarshal([]byte(val), &args); err != nil {
+			// default behavior if these are missing or not json is to not delay
+			return false
+		}
+	}
+	return args.DeprovisionAction == metal3v1alpha1.DetachedDeprovisionActionDelay
 }
 
 func (hsm *hostStateMachine) checkDetachedHost(info *reconcileInfo) (result actionResult) {

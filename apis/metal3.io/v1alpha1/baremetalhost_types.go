@@ -660,6 +660,18 @@ type RebootAnnotationArguments struct {
 	Mode RebootMode `json:"mode"`
 }
 
+type DetachedDeprovisionAction string
+
+const (
+	DetachedDeprovisionActionDelay  = "delay"
+	DetachedDeprovisionActionDelete = "delete"
+)
+
+type DetachedAnnotationArguments struct {
+	// DeprovisionAction indicates the desired deprovition logic when the detached annotation is present
+	DeprovisionAction DetachedDeprovisionAction `json:"deprovisionAction,omitempty"`
+}
+
 // Match compares the saved status information with the name and
 // content of a secret object.
 func (cs CredentialsStatus) Match(secret corev1.Secret) bool {
