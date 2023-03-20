@@ -1088,7 +1088,7 @@ func TestDeleteWaitsForDetach(t *testing.T) {
 				setDeletion().
 				setDetached("{\"deleteAction\": \"delay\"}").
 				build(),
-			ExpectedState: metal3v1alpha1.StateProvisioning,
+			ExpectedState: metal3v1alpha1.StateProvisioned,
 		},
 		{
 			Scenario: "provisioned-detached-delay",

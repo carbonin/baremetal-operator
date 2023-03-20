@@ -183,13 +183,13 @@ func (hsm *hostStateMachine) ReconcileState(info *reconcileInfo) (actionRes acti
 		return delayedResult
 	}
 
+	if detachedResult := hsm.checkDetachedHost(info); detachedResult != nil {
+		return detachedResult
+	}
+
 	if hsm.checkInitiateDelete(info.log) {
 		info.log.Info("Initiating host deletion")
 		return actionComplete{}
-	}
-
-	if detachedResult := hsm.checkDetachedHost(info); detachedResult != nil {
-		return detachedResult
 	}
 
 	if registerResult := hsm.ensureRegistered(info); registerResult != nil {
@@ -275,6 +275,9 @@ func (hsm *hostStateMachine) checkDetachedHost(info *reconcileInfo) (result acti
 	// provisioner and take no further action
 	// Note this doesn't change the current state, only the OperationalStatus
 	if hasDetachedAnnotation(hsm.Host) {
+		if info.host.OperationalStatus() == metal3v1alpha1.OperationalStatusDetached {
+			return nil
+		}
 		// Only allow detaching hosts in Provisioned/ExternallyProvisioned/Ready/Available states
 		switch info.host.Status.Provisioning.State {
 		case metal3v1alpha1.StateProvisioned, metal3v1alpha1.StateExternallyProvisioned, metal3v1alpha1.StateReady, metal3v1alpha1.StateAvailable:
